@@ -14,7 +14,7 @@
 .reveal .slides .stage { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .5s; }
 .reveal .slides .stage.is-dim { opacity: var(--stage-stage-dim) !important; }
 .reveal .slides .stage-svg { width: 100%; height: 100%; font-family: var(--stage-font); }
-.reveal .slides .stage g, .reveal .slides .stage path, .reveal .slides .stage line, .reveal .slides .stage text { transition: opacity .4s; }
+.reveal .slides .stage g, .reveal .slides .stage path, .reveal .slides .stage line, .reveal .slides .stage text { transition: opacity .4s, visibility .4s; }
 
 .st-axisline { stroke: var(--stage-ink); stroke-width: 1.5; opacity: .45; }
 .st-tick { stroke: var(--stage-ink); opacity: .45; }
@@ -35,7 +35,7 @@
 
 /* stage slides: transparent, top-anchored, no padding, regardless of the theme's center setting */
 .reveal .slides section.stage { padding: 0 !important; top: 0 !important; height: 100%; box-sizing: border-box; background: transparent; }
-.reveal .slides section.stage > h2:first-child, .reveal .slides section.stage > h1:first-child { position: absolute; left: 5.5%; top: 24px; margin: 0; font-size: 34px; }
+.reveal .slides section.slide.stage > h2:first-child, .reveal .slides section.slide.stage > h1:first-child, .reveal .slides section.stage > h2:first-child { position: absolute; left: 5.5%; top: 24px; height: auto; margin: 0; display: block; font-size: 34px; line-height: 1.2; }
 
 /* lighting */
 .reveal .slides .stage .is-dim { opacity: var(--stage-dim) !important; }

@@ -9,6 +9,7 @@
     if (text != null) e.textContent = text;
     return e;
   }
+  function show(node, on) { node.style.visibility = on ? 'visible' : 'hidden'; node.style.opacity = on ? '' : '0'; }
   function colourOf(token) {
     if (!token) return 'var(--stage-primary)';
     if (/^(primary|accent|highlight|muted|ink)$/.test(token)) return 'var(--stage-' + token + ')';
@@ -39,7 +40,7 @@
     var paths = {}, names = {};
     model.lines.forEach(function (lid) {
       var line = model.index[lid];
-      names[lid] = el('text', { class: 'st-linename', x: LEFT, y: geom.bands[lid].y0 - 6 }, line.label); g.names.appendChild(names[lid]);
+      names[lid] = el('text', { class: 'st-linename', x: LEFT, y: geom.bands[lid].y0 + 18 }, line.label); g.names.appendChild(names[lid]);
       [lid].concat(line.strands).concat(L.leaves(model, lid, []).length ? allBranches(model, lid) : []).forEach(function (id) {
         var node = model.index[id];
         var p = el('path', { class: 'st-path st-' + node.kind, 'data-id': id, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
@@ -106,7 +107,7 @@
     var cur = null;
     function draw(view, grow, flags) {
       var x = L.xScale(view, W - LEFT - RIGHT, LEFT), span = view[1] - view[0];
-      var every = span > 60 ? 10 : span > 25 ? 5 : 1;
+      var every = span > 60 ? 10 : span > 15 ? 5 : span > 8 ? 2 : 1;
       ticks.forEach(function (k) {
         var on = k.yr % every === 0 && k.yr >= view[0] && k.yr <= view[1];
         k.t.style.opacity = on ? 1 : 0; k.l.style.opacity = on ? 1 : 0;
@@ -119,7 +120,7 @@
         if (n && n.line && n.line !== id && grow[n.line] != null) return grow[n.line];
         return -Infinity;
       };
-      model.lines.forEach(function (lid) { names[lid].style.opacity = gf(lid) > model.index[lid].start ? 1 : 0; });
+      model.lines.forEach(function (lid) { show(names[lid], gf(lid) > model.index[lid].start); });
       Object.keys(paths).forEach(function (id) {
         var node = model.index[id];
         paths[id].setAttribute('d', L.samplePath(geom, model, id, view, gf(id), x, { end: flags.ends ? undefined : null }));
@@ -127,8 +128,8 @@
       });
       var evItems = { above: [], below: [] };
       events.forEach(function (e) {
-        var n = e.node, on = gf(n.parent) >= n.year - 0.05;
-        e.g.style.opacity = on ? 1 : 0;
+        var n = e.node, on = gf(n.parent) >= n.year - 0.05 && n.year >= view[0] - 0.5 && n.year <= view[1] + 0.5;
+        show(e.g, on);
         var px = x(n.year), py = L.yFor(geom, model, n.parent, n.year, { span: span });
         e.g.firstChild.setAttribute('cx', px); e.g.firstChild.setAttribute('cy', py);
         var t = e.g.lastChild, right = px > W - 300, w = L.textWidth(n.label, 14);
@@ -144,8 +145,8 @@
         });
       });
       forks.forEach(function (f) {
-        var on = f.owners.some(function (o) { return gf(o.id) >= f.fork.at; });
-        f.g.style.opacity = on ? 1 : 0;
+        var on = f.owners.some(function (o) { return gf(o.id) >= f.fork.at; }) && f.fork.at >= view[0] - 0.5 && f.fork.at <= view[1] + 0.5;
+        show(f.g, on);
         var fx = x(f.fork.at), ys = [];
         f.owners.forEach(function (o) {
           ys.push(L.offsetAt(geom, model, o.id, f.fork.at));
@@ -166,8 +167,8 @@
         tx.style.opacity = lane < 0 ? 0 : 1;
       });
       crossings.forEach(function (c) {
-        var n = c.node, on = gf(n.a.id) >= n.a.year - 0.1 && gf(n.b.id) >= n.b.year - 0.1;
-        c.g.style.opacity = on ? 1 : 0;
+        var n = c.node, on = gf(n.a.id) >= n.a.year - 0.1 && gf(n.b.id) >= n.b.year - 0.1 && n.a.year >= view[0] - 0.5 && n.a.year <= view[1] + 0.5;
+        show(c.g, on);
         var ax = x(n.a.year), bx = x(n.b.year), ay = L.yFor(geom, model, n.a.id, n.a.year, { span: span }), by = L.yFor(geom, model, n.b.id, n.b.year, { span: span });
         var ln = c.g.childNodes[0], mk = c.g.childNodes[1], tx = c.g.childNodes[2];
         ln.setAttribute('x1', ax); ln.setAttribute('y1', ay); ln.setAttribute('x2', bx); ln.setAttribute('y2', by);
@@ -176,12 +177,12 @@
         tx.setAttribute('x', mx + (mx > W - 340 ? -16 : 16)); tx.setAttribute('y', my + 5); tx.setAttribute('text-anchor', mx > W - 340 ? 'end' : 'start');
         tx.style.opacity = (span <= 60 || (flags.lit && flags.lit.has(n.id))) ? 1 : 0;
       });
-      ends.forEach(function (e) {
-        var n = e.node, on = flags.ends && gf(n.id) >= n.end - 0.5;
-        e.g.style.opacity = on ? 1 : 0;
+      ends.forEach(function (e, ei) {
+        var n = e.node, on = flags.ends && gf(n.id) >= n.end - 0.5 && n.end >= view[0] && n.end <= view[1] + 0.5;
+        show(e.g, on);
         var ex = x(n.end), ey = L.offsetAt(geom, model, n.id, n.end), tight = ex > W - 230;
         e.g.firstChild.setAttribute('cx', ex); e.g.firstChild.setAttribute('cy', ey);
-        var t = e.g.lastChild; t.setAttribute('x', ex + (tight ? -14 : 14)); t.setAttribute('text-anchor', tight ? 'end' : 'start'); t.setAttribute('y', tight ? ey - 14 : ey + 5);
+        var t = e.g.lastChild; t.setAttribute('x', ex + (tight ? -14 : 14)); t.setAttribute('text-anchor', tight ? 'end' : 'start'); t.setAttribute('y', tight ? (ei % 2 ? ey + 24 : ey - 14) : ey + 5);
       });
     }
     // ---------------------------------------------------------------- lighting
