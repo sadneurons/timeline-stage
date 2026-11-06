@@ -1,36 +1,58 @@
 ---
 title: "timeline-stage example"
+subtitle: "two lines, a fork tree, three crossings"
 format: revealjs
 ---
 
-## The same week {.stage view="1946-1954" grow="machine:1949.7 maisie:1949.7" lit="x1949"}
+## The same week {.stage view="1946-1954" grow="machine:1949.7 maisie:1949.7" lit="x1949" colours="false" ends="false"}
 
 ::: {.pin year=1949.44 side=above align=right}
-Two lines begin in the same week.
+Two lines begin in the same week. Branch colours and endings are hidden until the story reveals them.
+:::
+
+## The strands meet {.stage view="1946-1956" grow="machine:1954.6"}
+
+::: {.pin year=1952.05 side=below width=wide}
+Jefferson's and Turing's strands bow together at the oration and at the broadcast, then one of them ends.
 :::
 
 ## 1960 {.stage view="1946-1972" grow="maisie:1963.5 machine:1962"}
 
 ::: {.pin year=1960 side=above}
-The eleven-plus.
+The eleven-plus: the first fork.
 :::
 
 ## 1960, same state {.stage}
 
 ::: {.pin year=1960 side=above}
-The eleven-plus.
+A slide with no attributes repeats the previous state exactly.
 :::
 
 ## 1965 {.stage view="1946-1975" grow="maisie:1972 machine:1966" lit="x1965 b84 b91"}
 
 ::: {.pin year=1965 side=below}
-She solders the machine.
+She solders the machine. Two branches are lit; the rest dim.
+:::
+
+## An ordinary slide
+
+- The stage hides on any slide without the `stage` class.
+- Everything else in Quarto works as normal here.
+
+## Who turns the wheel {.stage view="1955-2015" grow="maisie:2014 machine:2014"}
+
+::: {.pin year=1999 side=mid align=left}
+A shared fork from `forks-on` kinks every branch and is labelled once.
 :::
 
 ## Except here {.stage dim="true"}
 
 ::: {.cover tone=dark}
-A panel over a dimmed stage.
+A panel over a dimmed stage. Markdown inside works: *emphasis*, lists, images.
 :::
 
-## Four women {.stage view="1946-2045" grow="maisie:2040 machine:2040" lit="ghost"}
+## Four women {.stage view="1946-2045" grow="maisie:2040 machine:2040" colours="true" ends="true" lit="ghost"}
+
+::: {.pin year=1975 side=above width=wide}
+Colours and endings appear. The unknown id `ghost` in `lit` is ignored with a console warning.
+:::

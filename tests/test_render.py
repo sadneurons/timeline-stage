@@ -23,3 +23,20 @@ def test_stage_sections_and_overlays():
     assert re.search(r'<section[^>]*class="[^"]*\bstage\b[^"]*"[^>]*data-transition="none"', html)
     assert re.search(r'<div class="pin side-below[^"]*" data-year="1965"', html)
     assert re.search(r'<div class="cover tone-dark[^"]*"', html)
+
+
+def test_invalid_timeline_fails_with_path(tmp_path):
+    import shutil
+    shutil.copytree(EX, tmp_path / "ex", ignore=shutil.ignore_patterns("_site", ".quarto", "index_files"))
+    y = (tmp_path / "ex" / "timeline.yml").read_text().replace("b: b77@2026", "b: nobody@2026")
+    (tmp_path / "ex" / "timeline.yml").write_text(y)
+    r = subprocess.run(["quarto", "render", "index.qmd"], cwd=tmp_path / "ex", capture_output=True, text=True)
+    assert r.returncode != 0 and 'crossings[2]: unknown id "nobody"' in (r.stderr + r.stdout)
+
+
+def test_example_exercises_every_feature():
+    src = (EX / "index.qmd").read_text()
+    data = (EX / "timeline.yml").read_text()
+    for s in ['colours="false"', 'ends="false"', 'dim="true"', 'side=above', 'side=mid', 'side=below',
+              'align=right', '.cover', 'forks-on', 'meets:', 'strands:']:
+        assert s in src or s in data, s

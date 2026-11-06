@@ -70,6 +70,73 @@ local function read_timeline(path)
   return convert_dates(data, nil)
 end
 
+-- Validation: the same five rules as layout.js validate(); messages name the path and id.
+local function validate(data)
+  local errs, ids, years = {}, {}, {}
+  local function err(path, msg) errs[#errs + 1] = path .. ": " .. msg end
+  local function claim(id, path)
+    if id == nil then err(path, "missing id"); return end
+    if ids[id] then err(path, 'duplicate id "' .. id .. '"') else ids[id] = path end
+  end
+  local function parse_ref(ref)
+    local id, yr = tostring(ref):match("^(.-)@(.+)$")
+    return id, tonumber(yr)
+  end
+  for i, L in ipairs(data.lines or {}) do
+    local p = "lines[" .. (i - 1) .. "]"
+    claim(L.id, p)
+    years[L.id] = { L.start, L["end"] }
+    for j, S in ipairs(L.strands or {}) do
+      claim(S.id, p .. ".strands[" .. (j - 1) .. "]")
+      years[S.id] = { S.start, S["end"] }
+    end
+    local function walk(node, nstart, nend, path)
+      for k, F in ipairs(node.forks or {}) do
+        local fp = path .. ".forks[" .. (k - 1) .. "]"
+        if F.at < nstart then err(fp, "fork at " .. F.at .. " is before branch start " .. nstart) end
+        if nend ~= nil and F.at > nend then err(fp, "fork at " .. F.at .. " is after branch end " .. nend) end
+        for c, C in ipairs(F.children or {}) do
+          local cp = fp .. ".children[" .. (c - 1) .. "]"
+          claim(C.id, cp)
+          if C["end"] ~= nil and C["end"] < F.at then err(cp, "end " .. C["end"] .. " is before fork at " .. F.at) end
+          years[C.id] = { F.at, C["end"] }
+          walk(C, F.at, C["end"], cp)
+        end
+      end
+    end
+    walk(L, L.start, L["end"], p)
+    for k, K in ipairs(L["forks-on"] or {}) do
+      for _, bid in ipairs(K.branches or {}) do
+        if not years[bid] then err(p .. ".forks-on[" .. (k - 1) .. "]", 'unknown id "' .. bid .. '"') end
+      end
+    end
+    for k, E in ipairs(L.events or {}) do
+      local ep = p .. ".events[" .. (k - 1) .. "]"
+      claim(E.id, ep)
+      if E.on and not years[E.on] then err(ep, 'unknown id "' .. E.on .. '"') end
+    end
+    for k, M in ipairs(L.meets or {}) do
+      for _, sid in ipairs({ M[1], M[2] }) do
+        if not years[sid] then err(p .. ".meets[" .. (k - 1) .. "]", 'unknown id "' .. tostring(sid) .. '"') end
+      end
+    end
+  end
+  for i, X in ipairs(data.crossings or {}) do
+    local p = "crossings[" .. (i - 1) .. "]"
+    claim(X.id, p)
+    for _, k in ipairs({ "a", "b" }) do
+      local id, yr = parse_ref(X[k])
+      if not id or not years[id] then
+        err(p, 'unknown id "' .. tostring(id) .. '"')
+      else
+        local y = years[id]
+        if yr < y[1] or (y[2] ~= nil and yr > y[2]) then err(p, 'crossing endpoint "' .. tostring(X[k]) .. '" is outside that id\'s years') end
+      end
+    end
+  end
+  return errs
+end
+
 local embedded = false
 
 local function Meta(meta)
@@ -79,6 +146,11 @@ local function Meta(meta)
   local data = read_timeline(path)
   if not data then
     quarto.log.error("timeline-stage: cannot read " .. path)
+    os.exit(1)
+  end
+  local errs = validate(data)
+  if #errs > 0 then
+    for _, e in ipairs(errs) do quarto.log.error("timeline-stage: " .. e) end
     os.exit(1)
   end
   local json = pandoc.json.encode(data)
