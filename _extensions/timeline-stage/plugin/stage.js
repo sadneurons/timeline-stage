@@ -112,20 +112,36 @@
         k.t.style.opacity = on ? 1 : 0; k.l.style.opacity = on ? 1 : 0;
         k.t.setAttribute('x1', x(k.yr)); k.t.setAttribute('x2', x(k.yr)); k.l.setAttribute('x', x(k.yr));
       });
-      var gf = function (id) { return grow[id] != null ? grow[id] : (model.index[id].line !== id && grow[model.index[id].line] != null ? grow[model.index[id].line] : -Infinity); };
+      var gf = function (id) {
+        if (grow[id] != null) return grow[id];
+        var n = model.index[id];
+        if (n && n.kind === 'event') return gf(n.parent);
+        if (n && n.line && n.line !== id && grow[n.line] != null) return grow[n.line];
+        return -Infinity;
+      };
       model.lines.forEach(function (lid) { names[lid].style.opacity = gf(lid) > model.index[lid].start ? 1 : 0; });
       Object.keys(paths).forEach(function (id) {
         var node = model.index[id];
         paths[id].setAttribute('d', L.samplePath(geom, model, id, view, gf(id), x, { end: flags.ends ? undefined : null }));
         paths[id].style.stroke = colourOf(flags.colours || node.kind !== 'branch' ? node.colour : model.index[node.line].colour);
       });
+      var evItems = { above: [], below: [] };
       events.forEach(function (e) {
         var n = e.node, on = gf(n.parent) >= n.year - 0.05;
         e.g.style.opacity = on ? 1 : 0;
         var px = x(n.year), py = L.yFor(geom, model, n.parent, n.year, { span: span });
         e.g.firstChild.setAttribute('cx', px); e.g.firstChild.setAttribute('cy', py);
-        var t = e.g.lastChild; t.setAttribute('x', px + (px > W - 300 ? -10 : 8)); t.setAttribute('text-anchor', px > W - 300 ? 'end' : 'start');
-        t.setAttribute('y', n.side === 'below' ? py + 22 : py - 12);
+        var t = e.g.lastChild, right = px > W - 300, w = L.textWidth(n.label, 14);
+        t.setAttribute('x', px + (right ? -10 : 8)); t.setAttribute('text-anchor', right ? 'end' : 'start');
+        e.px = px; e.py = py;
+        if (on) evItems[n.side === 'below' ? 'below' : 'above'].push({ x: right ? px - 10 - w : px + 8, width: w, e: e });
+      });
+      ['above', 'below'].forEach(function (side) {
+        L.assignLanes(evItems[side], { gap: 10, maxLanes: 3 }).forEach(function (it) {
+          var t = it.e.g.lastChild, lane = it.lane;
+          t.style.opacity = lane < 0 ? 0 : 1;
+          t.setAttribute('y', side === 'below' ? it.e.py + 22 + 16 * Math.max(0, lane) : it.e.py - 12 - 16 * Math.max(0, lane));
+        });
       });
       forks.forEach(function (f) {
         var on = f.owners.some(function (o) { return gf(o.id) >= f.fork.at; });
@@ -136,10 +152,18 @@
           if (!f.fork.kink) f.fork.children.forEach(function (c) { ys.push(L.offsetAt(geom, model, c, f.fork.at + geom.opts.easeYears)); });
         });
         var yTop = Math.min.apply(null, ys) - 8;
+        f.fx = fx; f.yTop = yTop;
+        var tx = f.g.lastChild, anchor = fx > W - 160 ? 'end' : fx < LEFT + 100 ? 'start' : 'middle', w = L.textWidth(f.fork.label, 15);
+        tx.setAttribute('x', fx); tx.setAttribute('text-anchor', anchor);
+        f.item = { x: anchor === 'middle' ? fx - w / 2 : anchor === 'end' ? fx - w : fx, width: w, f: f, on: on };
+      });
+      L.assignLanes(forks.filter(function (f) { return f.item && f.item.on; }).map(function (f) { return f.item; }), { gap: 10, maxLanes: 4 });
+      forks.forEach(function (f) {
+        var lane = f.item ? f.item.lane : 0, lift = 24 + 22 * Math.max(0, lane);
         var ln = f.g.firstChild, tx = f.g.lastChild;
-        ln.setAttribute('x1', fx); ln.setAttribute('x2', fx); ln.setAttribute('y1', yTop - 24); ln.setAttribute('y2', yTop + 4);
-        tx.setAttribute('x', fx); tx.setAttribute('y', yTop - 30);
-        tx.setAttribute('text-anchor', fx > W - 160 ? 'end' : fx < LEFT + 100 ? 'start' : 'middle');
+        ln.setAttribute('x1', f.fx); ln.setAttribute('x2', f.fx); ln.setAttribute('y1', f.yTop - lift); ln.setAttribute('y2', f.yTop + 4);
+        tx.setAttribute('y', f.yTop - lift - 6);
+        tx.style.opacity = lane < 0 ? 0 : 1;
       });
       crossings.forEach(function (c) {
         var n = c.node, on = gf(n.a.id) >= n.a.year - 0.1 && gf(n.b.id) >= n.b.year - 0.1;
@@ -150,6 +174,7 @@
         var mx = (ax + bx) / 2, my = (ay + by) / 2;
         mk.setAttribute('cx', mx); mk.setAttribute('cy', my);
         tx.setAttribute('x', mx + (mx > W - 340 ? -16 : 16)); tx.setAttribute('y', my + 5); tx.setAttribute('text-anchor', mx > W - 340 ? 'end' : 'start');
+        tx.style.opacity = (span <= 60 || (flags.lit && flags.lit.has(n.id))) ? 1 : 0;
       });
       ends.forEach(function (e) {
         var n = e.node, on = flags.ends && gf(n.id) >= n.end - 0.5;
@@ -159,22 +184,86 @@
         var t = e.g.lastChild; t.setAttribute('x', ex + (tight ? -14 : 14)); t.setAttribute('text-anchor', tight ? 'end' : 'start'); t.setAttribute('y', tight ? ey - 14 : ey + 5);
       });
     }
-    function apply(state) {
-      cur = state;
-      draw(state.view, state.grow, { colours: state.colours, ends: state.ends });
-      root.classList.toggle('is-dim', !!state.dim);
+    // ---------------------------------------------------------------- lighting
+    var litTargets = [];   // [{ el, ids }] : element is lit if any of its ids is lit
+    Object.keys(paths).forEach(function (id) { litTargets.push({ el: paths[id], ids: [id] }); });
+    events.forEach(function (e) { litTargets.push({ el: e.g, ids: [e.node.id, e.node.parent] }); });
+    forks.forEach(function (f) { litTargets.push({ el: f.g, ids: f.owners.map(function (o) { return o.id; }).concat(f.fork.children) }); });
+    crossings.forEach(function (c) { litTargets.push({ el: c.g, ids: [c.node.id] }); });
+    ends.forEach(function (e) { litTargets.push({ el: e.g, ids: [e.node.id] }); });
+    function light(state) {
+      var known = new Set(Array.from(state.lit).filter(function (id) { return !!model.index[id]; }));
+      var lit = known.size ? L.litSet(model, known) : null;
+      litTargets.forEach(function (t) {
+        var on = !lit || t.ids.some(function (id) { return lit.has(id); });
+        t.el.classList.toggle('is-dim', !on);
+      });
+      return lit;
     }
-    function update() {
-      var idx = sections.indexOf(reveal.getCurrentSlide());
+
+    // ---------------------------------------------------------------- pins
+    function placePins(section, state) {
+      var x = L.xScale(state.view, W - LEFT - RIGHT, LEFT);
+      section.querySelectorAll('.pin[data-year]').forEach(function (pin) {
+        var yr = L.toDecimalYear(pin.dataset.year), px = x(yr), w = pin.offsetWidth || 360, left;
+        if (pin.classList.contains('align-left')) left = px - w - 24;
+        else if (pin.classList.contains('align-right')) left = px + 24;
+        else left = px - w / 2;
+        pin.style.left = Math.max(20, Math.min(W - 20 - w, left)) + 'px';
+      });
+    }
+
+    // ---------------------------------------------------------------- transitions
+    var anim = null, raf = null;
+    function snapshot(state) {
+      var grow = {};
+      Object.keys(paths).forEach(function (id) { grow[id] = L.growFor(state, model, id); });
+      return { v0: state.view[0], v1: state.view[1], grow: grow };
+    }
+    function frameState(a, flags) {
+      // rebuild a grow map from the tweened per-id values
+      return { view: [a.v0, a.v1], grow: a.grow, flags: flags };
+    }
+    function apply(state, instant) {
+      cur = state;
+      var flags = { colours: state.colours, ends: state.ends, lit: light(state) };
+      root.classList.toggle('is-dim', !!state.dim);
+      var target = snapshot(state);
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+      if (instant || !anim) {
+        anim = target;
+        draw([anim.v0, anim.v1], anim.grow, flags);
+        return;
+      }
+      var from = { v0: anim.v0, v1: anim.v1, grow: {} };
+      Object.keys(target.grow).forEach(function (id) { from.grow[id] = isFinite(anim.grow[id]) ? anim.grow[id] : (isFinite(target.grow[id]) ? model.index[id].start : -Infinity); });
+      var t0 = performance.now(), ms = 800;
+      var step = function (now) {
+        var t = Math.min(1, (now - t0) / ms), e = L.smooth(t), a = { v0: from.v0 + (target.v0 - from.v0) * e, v1: from.v1 + (target.v1 - from.v1) * e, grow: {} };
+        Object.keys(target.grow).forEach(function (id) {
+          var f = from.grow[id], g = target.grow[id];
+          a.grow[id] = (isFinite(f) && isFinite(g)) ? f + (g - f) * e : (isFinite(g) ? (t < 1 ? model.index[id].start + (g - model.index[id].start) * e : g) : -Infinity);
+        });
+        anim = a;
+        draw([a.v0, a.v1], a.grow, flags);
+        if (t < 1) raf = requestAnimationFrame(step); else raf = null;
+      };
+      raf = requestAnimationFrame(step);
+    }
+    var first = true;
+    function update(instant) {
+      var sec = reveal.getCurrentSlide(), idx = sections.indexOf(sec);
       var st = idx >= 0 ? states[idx] : null;
       root.style.opacity = st ? 1 : 0;
-      if (st) apply(st);
+      if (st) { apply(st, first || instant === true); placePins(sec, st); }
+      first = false;
     }
+    reveal.on('overviewshown', function () { update(true); });
     var slides = document.querySelector('.reveal .slides');
     slides.insertBefore(root, slides.firstChild);
-    reveal.on('slidechanged', update);
-    reveal.on('ready', update);
-    if (reveal.isReady()) update();
+    reveal.on('slidechanged', function () { update(false); });
+    reveal.on('ready', function () { update(true); });
+    if (reveal.isReady()) update(true);
     window.TimelineStageDebug = { model: model, geom: geom, states: states, current: function () { return cur; } };
   }
 

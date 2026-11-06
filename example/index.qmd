@@ -11,6 +11,16 @@ Two lines begin in the same week.
 
 ## 1960 {.stage view="1946-1972" grow="maisie:1963.5 machine:1962"}
 
+::: {.pin year=1960 side=above}
+The eleven-plus.
+:::
+
+## 1960, same state {.stage}
+
+::: {.pin year=1960 side=above}
+The eleven-plus.
+:::
+
 ## 1965 {.stage view="1946-1975" grow="maisie:1972 machine:1966" lit="x1965 b84 b91"}
 
 ::: {.pin year=1965 side=below}
@@ -23,4 +33,4 @@ She solders the machine.
 A panel over a dimmed stage.
 :::
 
-## Four women {.stage view="1946-2045" grow="maisie:2040 machine:2040"}
+## Four women {.stage view="1946-2045" grow="maisie:2040 machine:2040" lit="ghost"}

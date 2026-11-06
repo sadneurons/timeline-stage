@@ -133,3 +133,13 @@ test('a branch with children stops where it forks', () => {
   const p = L.samplePath(g, m, 'passed', [1946, 2045], 2000, x, {});
   assert.ok(p.trim().endsWith(x(1965).toFixed(1) + ',' + L.offsetAt(g, m, 'passed', 1965).toFixed(1)), p.slice(-40));
 });
+
+// ---------------------------------------------------------------- Task 6
+test('litSet lights ancestors, strands and events', () => {
+  const m = L.normalise(raw);
+  const s = L.litSet(m, new Set(['b91', 'x1965']));
+  for (const id of ['b91', 'failed', 'maisie', 'x1965']) assert.ok(s.has(id), id);
+  assert.ok(!s.has('b68'));
+  const t = L.litSet(m, new Set(['machine']));
+  assert.ok(t.has('jefferson') && t.has('lister'));
+});

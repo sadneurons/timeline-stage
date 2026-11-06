@@ -342,8 +342,28 @@
     return -Infinity;
   }
 
+  // ---------------------------------------------------------------- lighting
+  // a lit id lights its ancestors back to the line start; a lit line lights its strands and events;
+  // a lit crossing lights only itself. Returns the full set of lit ids.
+  function litSet(model, lit) {
+    var out = new Set();
+    lit.forEach(function (id) {
+      var n = model.index[id];
+      if (!n) return;
+      if (n.kind === 'crossing') { out.add(id); return; }
+      ancestry(model, id).forEach(function (a) { out.add(a); });
+      if (n.kind === 'line') {
+        n.strands.forEach(function (s) { out.add(s); });
+        n.events.forEach(function (e) { out.add(e); });
+        n.strands.forEach(function (s) { model.index[s].events.forEach(function (e) { out.add(e); }); });
+      }
+      if (n.events) n.events.forEach(function (e) { out.add(e); });
+    });
+    return out;
+  }
+
   return { toDecimalYear: toDecimalYear, parseRef: parseRef, normalise: normalise, validate: validate,
     layout: layout, offsetAt: offsetAt, yAt: yAt, smooth: smooth, leaves: leaves, realChildren: realChildren, ancestry: ancestry,
     xScale: xScale, strandY: strandY, yFor: yFor, samplePath: samplePath, textWidth: textWidth, assignLanes: assignLanes,
-    resolveStates: resolveStates, growFor: growFor };
+    resolveStates: resolveStates, growFor: growFor, litSet: litSet };
 });
