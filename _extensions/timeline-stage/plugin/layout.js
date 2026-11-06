@@ -241,6 +241,65 @@
     return offsetAt(geom, model, r.id, r.year);
   }
 
+  // ---------------------------------------------------------------- paths
+  function xScale(view, width, left) {
+    return function (year) { return left + (year - view[0]) / (view[1] - view[0]) * width; };
+  }
+  // strand y with bows towards the strands it meets, damped at wide spans
+  function strandY(geom, model, sid, year, opts) {
+    var node = model.index[sid], base = geom.targets[sid];
+    if (!node || node.kind !== 'strand') return base;
+    var line = model.index[node.line], span = (opts && opts.span) || 50, bow = (opts && opts.bow) || 12;
+    var y = base;
+    line.meets.forEach(function (m) {
+      if (m.a !== sid && m.b !== sid) return;
+      var d = Math.abs(year - m.year);
+      if (d >= 0.8) return;
+      var other = m.a === sid ? m.b : m.a;
+      var mid = (geom.targets[m.a] + geom.targets[m.b]) / 2;
+      var amp = Math.min(Math.abs(mid - base), bow) * (mid > base ? 1 : -1);
+      y += amp * smooth(1 - d / 0.8) * Math.min(1, 14 / span);
+    });
+    return y;
+  }
+  function yFor(geom, model, id, year, opts) {
+    var node = model.index[id];
+    return node.kind === 'strand' ? strandY(geom, model, id, year, opts) : offsetAt(geom, model, id, year);
+  }
+  // SVG path for a line, strand or branch, drawn from its start to min(grow, end)
+  function samplePath(geom, model, id, view, grow, x, opts) {
+    var node = model.index[id];
+    if (!node) return '';
+    var start = node.start;
+    var end = (opts && opts.end === null) ? model.span[1] : (node.end != null ? node.end : model.span[1]);
+    var stop = Math.min(grow, end, model.span[1]);
+    if (!(stop > start)) return '';
+    var o = { span: view[1] - view[0], bow: opts && opts.bow };
+    var step = Math.max(0.1, (view[1] - view[0]) / 400), pts = [];
+    for (var yr = start; yr < stop; yr += step) pts.push(x(yr).toFixed(1) + ',' + yFor(geom, model, id, yr, o).toFixed(1));
+    pts.push(x(stop).toFixed(1) + ',' + yFor(geom, model, id, stop, o).toFixed(1));
+    return 'M' + pts.join(' L');
+  }
+
+  // ---------------------------------------------------------------- labels
+  function textWidth(label, fontSize) { return String(label).length * 0.56 * (fontSize || 15); }
+  // items: [{ x (left edge), width }] -> same objects with .lane (0..maxLanes-1 or -1 when hidden)
+  function assignLanes(items, opts) {
+    var gap = (opts && opts.gap != null) ? opts.gap : 8, maxLanes = (opts && opts.maxLanes) || 3;
+    var order = items.map(function (it, i) { return i; }).sort(function (a, b) { return items[a].x - items[b].x; });
+    var ends = [];
+    order.forEach(function (i) {
+      var it = items[i], lane = -1;
+      for (var k = 0; k < maxLanes; k++) {
+        if (ends[k] == null || ends[k] + gap <= it.x) { lane = k; break; }
+      }
+      it.lane = lane;
+      if (lane >= 0) ends[lane] = it.x + it.width;
+    });
+    return items;
+  }
+
   return { toDecimalYear: toDecimalYear, parseRef: parseRef, normalise: normalise, validate: validate,
-    layout: layout, offsetAt: offsetAt, yAt: yAt, smooth: smooth, leaves: leaves, realChildren: realChildren, ancestry: ancestry };
+    layout: layout, offsetAt: offsetAt, yAt: yAt, smooth: smooth, leaves: leaves, realChildren: realChildren, ancestry: ancestry,
+    xScale: xScale, strandY: strandY, yFor: yFor, samplePath: samplePath, textWidth: textWidth, assignLanes: assignLanes };
 });

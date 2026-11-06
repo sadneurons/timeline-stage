@@ -81,3 +81,26 @@ test('a single line with no forks is centred', () => {
   assert.equal(g.bands.one.centre, 325);
   assert.equal(L.offsetAt(g, m, 'one', 2005), 325);
 });
+
+// ---------------------------------------------------------------- Task 4
+test('samplePath clips to growth and never yields NaN', () => {
+  const m = L.normalise(raw), g = L.layout(m, OPTS);
+  const x = L.xScale([1946, 2045], 1140, 70);
+  assert.equal(L.samplePath(g, m, 'maisie', [1946, 2045], 1940, x, {}), '');
+  const d = L.samplePath(g, m, 'b91', [1946, 2045], 2100, x, {});
+  assert.ok(d.startsWith('M') && !/NaN/.test(d));
+  assert.ok(d.trim().endsWith(x(2040).toFixed(1) + ',' + L.offsetAt(g, m, 'b91', 2040).toFixed(1)), d.slice(-40));
+});
+
+test('strands bow together at a meeting', () => {
+  const m = L.normalise(raw), g = L.layout(m, OPTS);
+  const farJ = L.strandY(g, m, 'jefferson', 1950.5, { span: 8 }), nearJ = L.strandY(g, m, 'jefferson', 1949.44, { span: 8 });
+  const farT = L.strandY(g, m, 'turing', 1950.5, { span: 8 }), nearT = L.strandY(g, m, 'turing', 1949.44, { span: 8 });
+  assert.ok(Math.abs(nearJ - nearT) < Math.abs(farJ - farT));
+});
+
+test('assignLanes separates overlapping labels and hides the overflow', () => {
+  const items = [{ x: 100, width: 120 }, { x: 130, width: 120 }, { x: 160, width: 120 }, { x: 190, width: 120 }, { x: 600, width: 50 }];
+  const out = L.assignLanes(items, { gap: 8, maxLanes: 3 });
+  assert.deepEqual(out.map(i => i.lane), [0, 1, 2, -1, 0]);
+});
