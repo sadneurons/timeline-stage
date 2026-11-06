@@ -9,7 +9,7 @@ local function to_decimal_year(v)
   if type(v) == "number" then return v end
   local s = tostring(v)
   local y, m, d = s:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)$")
-  if not y then y, m = s:match("^(%d%d%d%d)%-(%d%d)$"); d = m and "15" or nil end
+  if not y then y, m = s:match("^(%d%d%d%d)%-(%d%d)$"); d = m and "0" or nil end
   if not y then
     local n = tonumber(s)
     return n
