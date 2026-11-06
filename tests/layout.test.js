@@ -104,3 +104,32 @@ test('assignLanes separates overlapping labels and hides the overflow', () => {
   const out = L.assignLanes(items, { gap: 8, maxLanes: 3 });
   assert.deepEqual(out.map(i => i.lane), [0, 1, 2, -1, 0]);
 });
+
+// ---------------------------------------------------------------- Task 5
+test('resolveStates carries view, grow, colours and ends forward but not lit or dim', () => {
+  const m = L.normalise(raw);
+  const s = L.resolveStates([
+    { attrs: null },
+    { attrs: { view: '1946-1954', grow: 'maisie:1949.7 machine:1949.7', lit: 'x1949', colours: 'false' } },
+    { attrs: { grow: 'maisie:1972', dim: 'true' } },
+  ], m);
+  assert.equal(s[0], null);
+  assert.deepEqual(s[1].view, [1946, 1954]); assert.equal(s[1].colours, false); assert.ok(s[1].lit.has('x1949'));
+  assert.deepEqual(s[2].view, [1946, 1954]); assert.equal(s[2].grow.machine, 1949.7); assert.equal(s[2].grow.maisie, 1972);
+  assert.equal(s[2].lit.size, 0); assert.equal(s[2].dim, true); assert.equal(s[2].colours, false); assert.equal(s[2].ends, true);
+});
+
+test('resolveStates defaults and warnings', () => {
+  const m = L.normalise(raw);
+  const s = L.resolveStates([{ attrs: { lit: 'ghost' } }], m);
+  assert.deepEqual(s[0].view, [1945, 2045]); assert.deepEqual(s[0].grow, {}); assert.ok(s[0].warnings[0].includes('ghost'));
+});
+
+test('a branch with children stops where it forks', () => {
+  const m = L.normalise(raw), g = L.layout(m, OPTS);
+  const x = L.xScale([1946, 2045], 1140, 70);
+  const d = L.samplePath(g, m, 'maisie', [1946, 2045], 2000, x, {});
+  assert.ok(d.trim().endsWith(x(1960).toFixed(1) + ',' + L.offsetAt(g, m, 'maisie', 1960).toFixed(1)), d.slice(-40));
+  const p = L.samplePath(g, m, 'passed', [1946, 2045], 2000, x, {});
+  assert.ok(p.trim().endsWith(x(1965).toFixed(1) + ',' + L.offsetAt(g, m, 'passed', 1965).toFixed(1)), p.slice(-40));
+});

@@ -40,7 +40,7 @@
       (L.strands || []).forEach(function (S) {
         var s = { id: S.id, kind: 'strand', line: L.id, parent: L.id, label: S.label || S.id,
           start: toDecimalYear(S.start), end: S.end == null ? null : toDecimalYear(S.end),
-          colour: S.colour || line.colour, events: [] };
+          colour: S.colour || line.colour, events: [], forks: [] };
         see(s.start); see(s.end);
         index[s.id] = s; line.strands.push(s.id);
       });
@@ -272,6 +272,8 @@
     if (!node) return '';
     var start = node.start;
     var end = (opts && opts.end === null) ? model.span[1] : (node.end != null ? node.end : model.span[1]);
+    // a node that forks into real children ends where it forks; the children carry on
+    (node.forks || []).forEach(function (f) { if (!f.kink) end = Math.min(end, f.at); });
     var stop = Math.min(grow, end, model.span[1]);
     if (!(stop > start)) return '';
     var o = { span: view[1] - view[0], bow: opts && opts.bow };
@@ -299,7 +301,49 @@
     return items;
   }
 
+  // ---------------------------------------------------------------- slide states
+  // sections: [{ attrs: { view, grow, lit, dim, colours, ends } | null }]
+  function resolveStates(sections, model) {
+    var prev = { view: model.span.slice(), grow: {}, colours: true, ends: true };
+    return sections.map(function (sec) {
+      if (!sec || !sec.attrs) return null;
+      var a = sec.attrs, warnings = [];
+      var view = prev.view;
+      if (a.view) {
+        var v = String(a.view).split('-').map(function (s) { return toDecimalYear(s.trim()); });
+        if (v.length === 2 && isFinite(v[0]) && isFinite(v[1]) && v[1] > v[0]) view = v; else warnings.push('bad view "' + a.view + '"');
+      }
+      var grow = {};
+      for (var k in prev.grow) grow[k] = prev.grow[k];
+      if (a.grow) String(a.grow).trim().split(/\s+/).forEach(function (tok) {
+        if (!tok) return;
+        var at = tok.lastIndexOf(':'), id = tok.slice(0, at), yr = toDecimalYear(tok.slice(at + 1));
+        if (at < 0 || !isFinite(yr)) { warnings.push('bad grow "' + tok + '"'); return; }
+        if (!model.index[id]) warnings.push('unknown id "' + id + '" in grow');
+        grow[id] = yr;
+      });
+      var lit = new Set();
+      if (a.lit) String(a.lit).trim().split(/[\s,]+/).forEach(function (id) {
+        if (!id) return;
+        if (!model.index[id]) warnings.push('unknown id "' + id + '" in lit');
+        lit.add(id);
+      });
+      var bool = function (v, d) { return v == null || v === '' ? d : !/^(false|0|no|off)$/i.test(String(v)); };
+      var state = { view: view, grow: grow, lit: lit, dim: bool(a.dim, false), colours: bool(a.colours, prev.colours), ends: bool(a.ends, prev.ends), warnings: warnings };
+      prev = { view: view, grow: grow, colours: state.colours, ends: state.ends };
+      return state;
+    });
+  }
+  // growth for an id: its own value, else its line's, else nothing
+  function growFor(state, model, id) {
+    if (state.grow[id] != null) return state.grow[id];
+    var node = model.index[id];
+    if (node && node.line && node.line !== id && state.grow[node.line] != null) return state.grow[node.line];
+    return -Infinity;
+  }
+
   return { toDecimalYear: toDecimalYear, parseRef: parseRef, normalise: normalise, validate: validate,
     layout: layout, offsetAt: offsetAt, yAt: yAt, smooth: smooth, leaves: leaves, realChildren: realChildren, ancestry: ancestry,
-    xScale: xScale, strandY: strandY, yFor: yFor, samplePath: samplePath, textWidth: textWidth, assignLanes: assignLanes };
+    xScale: xScale, strandY: strandY, yFor: yFor, samplePath: samplePath, textWidth: textWidth, assignLanes: assignLanes,
+    resolveStates: resolveStates, growFor: growFor };
 });
