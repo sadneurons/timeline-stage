@@ -146,5 +146,101 @@
     return errs;
   }
 
-  return { toDecimalYear: toDecimalYear, parseRef: parseRef, normalise: normalise, validate: validate };
+  // ---------------------------------------------------------------- layout
+  var DEFAULTS = { height: 720, top: 90, bottom: 560, easeYears: 3, kink: 6, strandGap: 28, spread: 0.8, gap: 0.06 };
+  function opt(opts, k) { return opts && opts[k] != null ? opts[k] : DEFAULTS[k]; }
+  function smooth(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
+
+  // real (non-kink) children of a node, in file order
+  function realChildren(node) {
+    var out = [];
+    node.forks.forEach(function (f) { if (!f.kink) f.children.forEach(function (c) { out.push(c); }); });
+    return out;
+  }
+  function leaves(model, id, acc) {
+    var kids = realChildren(model.index[id]);
+    if (!kids.length) acc.push(id); else kids.forEach(function (c) { leaves(model, c, acc); });
+    return acc;
+  }
+
+  function layout(model, opts) {
+    var top = opt(opts, 'top'), bottom = opt(opts, 'bottom'), spread = opt(opts, 'spread');
+    var strandGap = opt(opts, 'strandGap');
+    var gapPx = opt(opts, 'gap') * (bottom - top);
+    var weights = {}, total = 0;
+    model.lines.forEach(function (lid) {
+      var line = model.index[lid];
+      var w = Math.max(leaves(model, lid, []).length, 1 + line.strands.length);
+      if (line.band) w = line.band;
+      weights[lid] = w; total += w;
+    });
+    var avail = (bottom - top) - gapPx * Math.max(0, model.lines.length - 1);
+    var bands = {}, targets = {}, y = top;
+    model.lines.forEach(function (lid) {
+      var line = model.index[lid];
+      var h = avail * weights[lid] / total;
+      var band = { y0: y, y1: y + h, centre: y + h / 2, weight: weights[lid], height: h };
+      bands[lid] = band;
+      // leaf targets spread evenly across spread*h, centred on the band
+      var lv = leaves(model, lid, []), k = lv.length, sh = spread * h;
+      lv.forEach(function (id, i) { targets[id] = band.centre - sh / 2 + sh * (i + 0.5) / k; });
+      // internal nodes: mean of their leaves
+      (function fill(id) {
+        var kids = realChildren(model.index[id]);
+        if (!kids.length) return targets[id];
+        var sum = 0; kids.forEach(function (c) { sum += fill(c); });
+        targets[id] = sum / kids.length;
+        return targets[id];
+      })(lid);
+      targets[lid] = band.centre;   // the line itself runs along the band centre
+      line.strands.forEach(function (sid, i) { targets[sid] = band.centre + strandGap * (i + 1); });
+      y += h + gapPx;
+    });
+    return { bands: bands, targets: targets, opts: { easeYears: opt(opts, 'easeYears'), kink: opt(opts, 'kink'), strandGap: strandGap } };
+  }
+
+  function ancestry(model, id) {
+    var path = [], n = model.index[id];
+    while (n) { path.unshift(n.id); n = n.parent ? model.index[n.parent] : null; }
+    return path;
+  }
+  function siblingIndex(model, id) {
+    var n = model.index[id], p = n.parent ? model.index[n.parent] : null;
+    if (!p) return 0;
+    var kids = realChildren(p);
+    return Math.max(0, kids.indexOf(id));
+  }
+
+  // y of a line or branch at a year: eased through each ancestor fork, with kinks
+  function offsetAt(geom, model, id, year) {
+    var node = model.index[id];
+    if (!node) return NaN;
+    if (node.kind === 'strand') return strandLane(geom, model, id);
+    if (node.kind === 'event') return yAt(geom, model, node.parent + '@' + node.year);
+    if (node.end != null) year = Math.min(year, node.end);
+    var path = ancestry(model, id), ease = geom.opts.easeYears, kink = geom.opts.kink;
+    var y = geom.bands[node.line].centre;
+    for (var i = 1; i < path.length; i++) {
+      var child = model.index[path[i]], parent = model.index[path[i - 1]];
+      if (year < child.start) return y;
+      y += (geom.targets[child.id] - geom.targets[parent.id]) * smooth((year - child.start) / ease);
+    }
+    // kinks on every node along the path
+    path.forEach(function (pid) {
+      var n = model.index[pid], sign = siblingIndex(model, pid) % 2 === 0 ? -1 : 1;
+      n.forks.forEach(function (f) {
+        if (f.kink && year >= f.at) y += sign * kink * smooth((year - f.at) / ease);
+      });
+    });
+    return y;
+  }
+  function strandLane(geom, model, sid) { return geom.targets[sid]; }
+
+  function yAt(geom, model, ref) {
+    var r = parseRef(ref);
+    return offsetAt(geom, model, r.id, r.year);
+  }
+
+  return { toDecimalYear: toDecimalYear, parseRef: parseRef, normalise: normalise, validate: validate,
+    layout: layout, offsetAt: offsetAt, yAt: yAt, smooth: smooth, leaves: leaves, realChildren: realChildren, ancestry: ancestry };
 });
