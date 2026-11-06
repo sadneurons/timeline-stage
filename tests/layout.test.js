@@ -143,3 +143,28 @@ test('litSet lights ancestors, strands and events', () => {
   const t = L.litSet(m, new Set(['machine']));
   assert.ok(t.has('jefferson') && t.has('lister'));
 });
+
+// ---------------------------------------------------------------- review fixes
+test('kinks alternate so adjacent siblings never drift together', () => {
+  const r = JSON.parse(JSON.stringify(raw));
+  r.lines[1]['forks-on'] = [1989, 1999, 2009, 2026].map(at => ({ at, label: 'k', branches: ['b68', 'b77', 'b84', 'b91'] }));
+  const m = L.normalise(r), g = L.layout(m, OPTS);
+  const gap = y => Math.abs(L.offsetAt(g, m, 'b84', y) - L.offsetAt(g, m, 'b77', y));
+  assert.ok(gap(2030) >= gap(1980) - 2 * g.opts.kink - 1, `gap ${gap(1980)} -> ${gap(2030)}`);
+});
+
+test('assignLanes keeps groups apart and honours a preset lane', () => {
+  const items = [{ x: 100, width: 120, group: 'a' }, { x: 110, width: 120, group: 'b' }, { x: 120, width: 120, group: 'a', lane: 2 }];
+  const out = L.assignLanes(items, { gap: 8, maxLanes: 3 });
+  assert.deepEqual(out.map(i => i.lane), [0, 0, 2]);
+});
+
+test('normalise keeps top-level options and event lanes', () => {
+  const r = JSON.parse(JSON.stringify(raw));
+  r.options = { easeYears: 5, kink: 10 };
+  r.lines[0].events[0].lane = 2;
+  const m = L.normalise(r);
+  assert.deepEqual(m.options, { easeYears: 5, kink: 10 });
+  assert.equal(m.index.baby.lane, 2);
+  assert.equal(L.layout(m, m.options).opts.easeYears, 5);
+});

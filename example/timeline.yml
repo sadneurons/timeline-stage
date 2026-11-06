@@ -14,6 +14,7 @@ lines:
       - { id: baby, year: 1948-06-21, label: the Baby runs, side: above }
       - { id: lister, year: 1949-06-09, label: The Mind of Mechanical Man, on: jefferson }
       - { id: times, year: 1949-06-11, label: Calculus to Sonnet, on: turing, side: below }
+      - { id: turing-dies, year: 1954-06-07, label: Turing dies, on: turing, side: below, end: true }
       - { id: pocket, year: 2026, label: the machine in your pocket }
   - id: maisie
     label: Maisie

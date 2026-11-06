@@ -34,11 +34,6 @@ A slide with no attributes repeats the previous state exactly.
 She solders the machine. Two branches are lit; the rest dim.
 :::
 
-## An ordinary slide
-
-- The stage hides on any slide without the `stage` class.
-- Everything else in Quarto works as normal here.
-
 ## Who turns the wheel {.stage view="1955-2015" grow="maisie:2014 machine:2014"}
 
 ::: {.pin year=1999 side=mid align=left}
@@ -50,6 +45,11 @@ A shared fork from `forks-on` kinks every branch and is labelled once.
 ::: {.cover tone=dark}
 A panel over a dimmed stage. Markdown inside works: *emphasis*, lists, images.
 :::
+
+## An ordinary slide
+
+- The stage hides on any slide without the `stage` class.
+- Everything else in Quarto works as normal here.
 
 ## Four women {.stage view="1946-2045" grow="maisie:2040 machine:2040" colours="true" ends="true" lit="ghost"}
 
