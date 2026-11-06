@@ -1,0 +1,5 @@
+.superpowers/
+example/_site/
+example/.quarto/
+example/index_files/
+**/__pycache__/

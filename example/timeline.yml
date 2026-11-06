@@ -1,0 +1,46 @@
+span: [1945, 2045]
+lines:
+  - id: machine
+    label: the machine
+    start: 1948-06-21
+    colour: accent
+    strands:
+      - { id: jefferson, label: Jefferson, start: 1949-06-09, end: 1961-01-29 }
+      - { id: turing, label: Turing, start: 1948-10-01, end: 1954-06-07 }
+    meets:
+      - [jefferson, turing, 1949-06-09]
+      - [jefferson, turing, 1952-01-10]
+    events:
+      - { id: baby, year: 1948-06-21, label: the Baby runs, side: above }
+      - { id: lister, year: 1949-06-09, label: The Mind of Mechanical Man, on: jefferson }
+      - { id: times, year: 1949-06-11, label: Calculus to Sonnet, on: turing, side: below }
+      - { id: pocket, year: 2026, label: the machine in your pocket }
+  - id: maisie
+    label: Maisie
+    start: 1949-06-09
+    forks:
+      - at: 1960
+        label: the eleven-plus
+        children:
+          - id: passed
+            forks:
+              - at: 1965
+                label: stays on at school
+                children:
+                  - { id: b68, label: diagnosed at 68, end: 2017, colour: muted }
+                  - { id: b77, label: "the Brain Health Clinic, 77", end: 2026, colour: accent }
+          - id: failed
+            forks:
+              - at: 1965
+                label: a wage, a bus stop
+                children:
+                  - { id: b84, label: diagnosed at 84, end: 2033, colour: muted }
+                  - { id: b91, label: "the sonnet, 91", end: 2040, colour: highlight }
+    forks-on:
+      - { at: 1999, label: a knee, branches: [b68, b77, b84, b91] }
+    events:
+      - { id: sonnet, year: 1964, label: Sonnet 73, on: failed }
+crossings:
+  - { id: x1949, a: machine@1949-06-09, b: maisie@1949-06-09, label: the same week }
+  - { id: x1965, a: machine@1965, b: b84@1965, label: she solders the machine }
+  - { id: x2026, a: machine@2026, b: b77@2026, label: the machine meets her in the clinic }
