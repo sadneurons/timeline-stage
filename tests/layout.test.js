@@ -168,3 +168,9 @@ test('normalise keeps top-level options and event lanes', () => {
   assert.equal(m.index.baby.lane, 2);
   assert.equal(L.layout(m, m.options).opts.easeYears, 5);
 });
+
+test('jitter ranks events that sit within one label thickness of each other', () => {
+  const items = [{ x: 100 }, { x: 108 }, { x: 115 }, { x: 160 }, { x: 400 }, { x: 410 }];
+  const out = L.jitterRanks(items, { gap: 20 });
+  assert.deepEqual(out.map(i => i.rank), [0, 1, 2, 0, 0, 1]);
+});
