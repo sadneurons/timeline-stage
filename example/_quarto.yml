@@ -3,6 +3,8 @@ project:
   output-dir: _site
   render:
     - index.qmd
+  resources:
+    - images/      # pictures named only in timeline.yml are not found by Quarto on its own
 
 format:
   revealjs:

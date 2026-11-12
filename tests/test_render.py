@@ -14,7 +14,7 @@ def test_data_embedded_once_and_converted():
     html = render()
     assert html.count('id="stage-data"') == 1
     data = html.split('id="stage-data">')[1].split("</script>")[0].replace(" ", "")
-    assert '"start":1949.44' in data  # 1949-06-09 converted
+    assert '"start":1949.438' in data  # 1949-06-09 converted, to a third of a day
     assert '"span":[1945,2045]' in data
 
 
@@ -23,6 +23,9 @@ def test_stage_sections_and_overlays():
     assert re.search(r'<section[^>]*class="[^"]*\bstage\b[^"]*"[^>]*data-transition="none"', html)
     assert re.search(r'<div class="pin side-below[^"]*" data-year="1965"', html)
     assert re.search(r'<div class="cover tone-dark[^"]*"', html)
+    assert re.search(r'<div class="caption"', html) and re.search(r'<div class="plate"', html)
+    assert re.search(r'<div class="caption width-wide"', html)
+    assert re.search(r'<section[^>]*class="[^"]*\bstage\b[^"]*"[^>]*data-now="1949-06-09"', html)
 
 
 def test_invalid_timeline_fails_with_path(tmp_path):
@@ -38,7 +41,8 @@ def test_example_exercises_every_feature():
     src = (EX / "index.qmd").read_text()
     data = (EX / "timeline.yml").read_text()
     for s in ['colours="false"', 'ends="false"', 'dim="true"', 'side=above', 'side=mid', 'side=below',
-              'align=right', '.cover', 'forks-on', 'meets:', 'strands:']:
+              'align=right', '.cover', 'forks-on', 'meets:', 'strands:',
+              '.caption', '.plate', 'now=', 'end-label:', 'lane:', 'ease:', 'img:', 'planned:']:
         assert s in src or s in data, s
 
 
@@ -47,6 +51,9 @@ def test_event_end_flag_survives_and_bad_dates_are_reported(tmp_path):
     html = render()
     data = html.split('id="stage-data">')[1].split("</script>")[0].replace(" ", "")
     assert '"id":"turing-dies"' in data and '"end":true' in data
+    # an event's note and picture reach the page, and the picture is copied beside it
+    assert '"img":"images/baby.svg"' in data and '"planned":true' in data
+    assert (EX / "_site" / "images" / "baby.svg").exists()
     shutil.copytree(EX, tmp_path / "ex", ignore=shutil.ignore_patterns("_site", ".quarto", "index_files"))
     y = (tmp_path / "ex" / "timeline.yml").read_text().replace("start: 1948-06-21", "start: June 1948", 1)
     (tmp_path / "ex" / "timeline.yml").write_text(y)

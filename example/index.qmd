@@ -4,28 +4,34 @@ subtitle: "two lines, a fork tree, three crossings"
 format: revealjs
 ---
 
-## The same week {.stage view="1946-1954" grow="machine:1949.7 maisie:1949.7" lit="x1949" colours="false" ends="false"}
+## The same week {.stage view="1946-1954" grow="1949.7" now="1949-06-09" lit="x1949" colours="false" ends="false"}
 
-::: {.pin year=1949.44 side=above align=right}
-Two lines begin in the same week. Branch colours and endings are hidden until the story reveals them.
+::: {.caption}
+**9 June 1949.** Two lines begin in the same week. The caption sits top left; its bold lead-in is set as the date. Click the ringed point to open its picture.
+:::
+
+::: {.plate}
+![](images/baby.svg)
+
+A plate holds the evidence, shown whole, with its label beneath.
 :::
 
 ## The strands meet {.stage view="1946-1956" grow="machine:1954.6"}
 
-::: {.pin year=1952.05 side=below width=wide}
-Jefferson's and Turing's strands bow together at the oration and at the broadcast, then one of them ends.
+::: {.caption}
+**1952.** The strands bow together at the oration and at the broadcast, then one of them ends.
 :::
 
-## 1960 {.stage view="1946-1972" grow="maisie:1963.5 machine:1962"}
+## 1960 {.stage view="1955-1970" grow="1964" now="1960" lit="maisie"}
 
-::: {.pin year=1960 side=above}
-The eleven-plus: the first fork.
+::: {.caption}
+**1960, the eleven-plus.** The first fork. The fork's label sits on the incoming line, each branch is named where it levels off, and the unlit line is a ghost without words.
 :::
 
-## 1960, same state {.stage}
+## 1960, same state {.stage now="1960"}
 
-::: {.pin year=1960 side=above}
-A slide with no attributes repeats the previous state exactly.
+::: {.pin year=1960 side=above align=right}
+A slide repeats the view and growth of the one before; `now` and `lit` are per slide. This is a pin: a free note tied to a year.
 :::
 
 ## 1965 {.stage view="1946-1975" grow="maisie:1972 machine:1966" lit="x1965 b84 b91"}
@@ -34,16 +40,16 @@ A slide with no attributes repeats the previous state exactly.
 She solders the machine. Two branches are lit; the rest dim.
 :::
 
-## Who turns the wheel {.stage view="1955-2015" grow="maisie:2014 machine:2014"}
+## Who turns the wheel {.stage view="1955-2015" grow="2014"}
 
 ::: {.pin year=1999 side=mid align=left}
-A shared fork from `forks-on` kinks every branch and is labelled once.
+A shared fork from `forks-on` marks every branch and is labelled once.
 :::
 
 ## Except here {.stage dim="true"}
 
 ::: {.cover tone=dark}
-A panel over a dimmed stage. Markdown inside works: *emphasis*, lists, images.
+A cover over a dimmed stage. Markdown inside works: *emphasis*, lists, images.
 :::
 
 ## An ordinary slide
@@ -51,8 +57,8 @@ A panel over a dimmed stage. Markdown inside works: *emphasis*, lists, images.
 - The stage hides on any slide without the `stage` class.
 - Everything else in Quarto works as normal here.
 
-## Four women {.stage view="1946-2045" grow="maisie:2040 machine:2040" colours="true" ends="true" lit="ghost"}
+## Four women {.stage view="1946-2045" grow="2040" colours="true" ends="true" lit="ghost"}
 
-::: {.pin year=1975 side=above width=wide}
-Colours and endings appear. The unknown id `ghost` in `lit` is ignored with a console warning.
+::: {.caption width=wide}
+**Endings.** Colours and end-labels appear. The unknown id `ghost` in `lit` is ignored with a console warning.
 :::

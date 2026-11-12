@@ -7,14 +7,23 @@ lines:
     strands:
       - { id: jefferson, label: Jefferson, start: 1949-06-09, end: 1961-01-29 }
       - { id: turing, label: Turing, start: 1948-10-01, end: 1954-06-07 }
+      # a later strand takes the row of one that has ended
+      - { id: successors, label: the successors, start: 1970, lane: 1 }
     meets:
       - [jefferson, turing, 1949-06-09]
       - [jefferson, turing, 1952-01-10]
     events:
-      - { id: baby, year: 1948-06-21, label: the Baby runs, side: above }
+      # an event with `img` (or `text`) opens a card when its marker is clicked
+      - id: baby
+        year: 1948-06-21
+        label: the Baby runs
+        date: "21 June 1948"
+        text: "The Baby runs the first program held in electronic memory"
+        img: images/baby.svg
       - { id: lister, year: 1949-06-09, label: The Mind of Mechanical Man, on: jefferson }
-      - { id: times, year: 1949-06-11, label: Calculus to Sonnet, on: turing, side: below }
-      - { id: turing-dies, year: 1954-06-07, label: Turing dies, on: turing, side: below, end: true }
+      - { id: times, year: 1949-06-11, label: Calculus to Sonnet, on: turing }
+      - { id: turing-dies, year: 1954-06-07, label: Turing dies, on: turing, end: true }
+      - { id: next, year: 2030, label: the next machine, on: successors, planned: true, side: above }
       - { id: pocket, year: 2026, label: the machine in your pocket }
   - id: maisie
     label: Maisie
@@ -24,19 +33,22 @@ lines:
         label: the eleven-plus
         children:
           - id: passed
+            label: grammar school
             forks:
               - at: 1965
                 label: stays on at school
+                ease: 1.5            # this fork opens faster than the rest
                 children:
-                  - { id: b68, label: diagnosed at 68, end: 2017, colour: muted }
-                  - { id: b77, label: "the Brain Health Clinic, 77", end: 2026, colour: accent }
+                  - { id: b68, end: 2017, end-label: diagnosed at 68, colour: muted }
+                  - { id: b77, label: referred, end: 2026, end-label: "the Brain Health Clinic, 77", colour: accent }
           - id: failed
+            label: secondary modern
             forks:
               - at: 1965
                 label: a wage, a bus stop
                 children:
-                  - { id: b84, label: diagnosed at 84, end: 2033, colour: muted }
-                  - { id: b91, label: "the sonnet, 91", end: 2040, colour: highlight }
+                  - { id: b84, end: 2033, end-label: diagnosed at 84, colour: muted }
+                  - { id: b91, end: 2040, end-label: "the sonnet, 91", colour: highlight }
     forks-on:
       - { at: 1999, label: a knee, branches: [b68, b77, b84, b91] }
     events:
