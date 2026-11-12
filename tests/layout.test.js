@@ -174,3 +174,10 @@ test('jitter ranks events that sit within one label thickness of each other', ()
   const out = L.jitterRanks(items, { gap: 20 });
   assert.deepEqual(out.map(i => i.rank), [0, 1, 2, 0, 0, 1]);
 });
+
+test('lighting a line lights its whole tree', () => {
+  const m = L.normalise(raw);
+  const s = L.litSet(m, new Set(['maisie']));
+  for (const id of ['maisie', 'passed', 'failed', 'b68', 'b91', 'sonnet']) assert.ok(s.has(id), id);
+  assert.ok(!s.has('machine') && !s.has('jefferson'));
+});
